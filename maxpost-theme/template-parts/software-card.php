@@ -13,6 +13,7 @@ if ( ! $software ) {
 $image_id     = $software['card_image_id'] ?: ( $software['screenshot_ids'][0] ?? 0 );
 $category     = $software['categories'][0]['name'] ?? __( 'Utility', 'maxpost' );
 $category_key = sanitize_html_class( strtolower( $software['categories'][0]['slug'] ?? 'utility' ) );
+$initials     = strtoupper( substr( preg_replace( '/[^a-z0-9]/i', '', $software['name'] ), 0, 2 ) );
 ?>
 <article class="software-card software-card--<?php echo esc_attr( $category_key ); ?>">
 	<a class="software-card__media" href="<?php the_permalink(); ?>" aria-label="<?php echo esc_attr( sprintf( __( 'View %s', 'maxpost' ), $software['name'] ) ); ?>">
@@ -25,7 +26,7 @@ $category_key = sanitize_html_class( strtolower( $software['categories'][0]['slu
 				<span class="software-card__window">
 					<span class="software-card__window-bar"><i></i><i></i><i></i></span>
 					<span class="software-card__window-body">
-						<span class="software-card__glyph"><?php echo esc_html( mb_substr( $software['name'], 0, 2 ) ); ?></span>
+						<span class="software-card__glyph"><?php echo esc_html( $initials ?: 'MP' ); ?></span>
 						<span class="software-card__line"></span>
 						<span class="software-card__line software-card__line--short"></span>
 					</span>
