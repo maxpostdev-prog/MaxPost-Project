@@ -2,7 +2,7 @@
 /**
  * Plugin Name: MaxPost Core
  * Description: Core content types, metadata, REST API and MaxPost Hub control plane.
- * Version: 0.2.0
+ * Version: 0.3.0
  * Requires at least: 6.5
  * Requires PHP: 8.1
  * Author: MaxPost
@@ -11,7 +11,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'MAXPOST_CORE_VERSION', '0.2.0' );
+define( 'MAXPOST_CORE_VERSION', '0.3.0' );
 define( 'MAXPOST_CORE_FILE', __FILE__ );
 define( 'MAXPOST_CORE_DIR', plugin_dir_path( __FILE__ ) );
 
