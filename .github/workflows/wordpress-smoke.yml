@@ -39,7 +39,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -99,8 +99,8 @@ jobs:
 
       - name: Verify activation and REST routes
         run: |
-          test "$(wp plugin status maxpost-core --field=status --path=/tmp/maxpost-wp)" = "active"
-          test "$(wp theme status maxpost-theme --field=status --path=/tmp/maxpost-wp)" = "active"
+          wp plugin is-active maxpost-core --path=/tmp/maxpost-wp
+          wp theme is-active maxpost-theme --path=/tmp/maxpost-wp
           wp eval 'do_action("rest_api_init"); $request = new WP_REST_Request("GET", "/maxpost/v1/software"); $request->set_param("per_page", 12); $response = rest_do_request($request); if ($response->is_error() || 200 !== $response->get_status()) { exit(1); } $data = $response->get_data(); if (empty($data["items"])) { exit(1); } echo "REST smoke test passed\n";' --path=/tmp/maxpost-wp
           wp eval 'if (!function_exists("maxpost_get_featured_software") || empty(maxpost_get_featured_software(3))) { exit(1); } echo "Theme helper smoke test passed\n";' --path=/tmp/maxpost-wp
 
