@@ -17,11 +17,16 @@
 <header class="site-header">
 	<div class="mp-container site-header__inner">
 		<a class="brand" href="<?php echo esc_url( home_url( '/' ) ); ?>" aria-label="<?php esc_attr_e( 'MaxPost home', 'maxpost' ); ?>">
-			<span class="brand__mark" aria-hidden="true">MP</span>
-			<span class="brand__name">MaxPost</span>
+			<span class="brand__mark" aria-hidden="true"><span>M</span><span>P</span></span>
+			<span class="brand__copy"><strong>MaxPost</strong><small><?php esc_html_e( 'Windows Utilities', 'maxpost' ); ?></small></span>
 		</a>
-		<nav class="site-nav" aria-label="<?php esc_attr_e( 'Primary navigation', 'maxpost' ); ?>">
-			<?php wp_nav_menu( [ 'theme_location' => 'primary', 'container' => false, 'fallback_cb' => false ] ); ?>
+		<button class="nav-toggle" type="button" aria-expanded="false" aria-controls="primary-navigation">
+			<span class="screen-reader-text"><?php esc_html_e( 'Toggle navigation', 'maxpost' ); ?></span>
+			<span></span><span></span><span></span>
+		</button>
+		<nav id="primary-navigation" class="site-nav" aria-label="<?php esc_attr_e( 'Primary navigation', 'maxpost' ); ?>">
+			<?php wp_nav_menu( [ 'theme_location' => 'primary', 'container' => false, 'fallback_cb' => 'maxpost_theme_fallback_menu' ] ); ?>
+			<a class="header-cta" href="<?php echo esc_url( get_post_type_archive_link( 'software' ) ?: home_url( '/software/' ) ); ?>"><?php esc_html_e( 'Browse tools', 'maxpost' ); ?></a>
 		</nav>
 	</div>
 </header>
