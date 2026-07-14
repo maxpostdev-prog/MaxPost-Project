@@ -50,13 +50,17 @@ $featured = function_exists( 'maxpost_get_featured_software' ) ? maxpost_get_fea
 				<div class="software-grid">
 					<?php foreach ( $featured as $item ) : ?>
 						<?php
-						$post = get_post( $item['id'] );
-						if ( $post ) {
-							setup_postdata( $post );
-							get_template_part( 'template-parts/software-card' );
+						$featured_post = get_post( $item['id'] );
+						if ( ! $featured_post ) {
+							continue;
 						}
+
+						$GLOBALS['post'] = $featured_post;
+						setup_postdata( $featured_post );
+						get_template_part( 'template-parts/software-card' );
 						?>
-					<?php endforeach; wp_reset_postdata(); ?>
+					<?php endforeach; ?>
+					<?php wp_reset_postdata(); ?>
 				</div>
 			<?php else : ?>
 				<p class="empty-state"><?php esc_html_e( 'Featured software will appear here after MaxPost Core is activated and software entries are published.', 'maxpost' ); ?></p>
