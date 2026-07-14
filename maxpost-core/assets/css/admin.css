@@ -1,0 +1,35 @@
+.maxpost-media-field {
+	margin: 20px 0;
+	padding: 16px;
+	border: 1px solid #dcdcde;
+	background: #fff;
+}
+
+.maxpost-media-preview {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 12px;
+	margin: 12px 0;
+}
+
+.maxpost-media-item {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	width: 140px;
+	padding: 8px;
+	border: 1px solid #dcdcde;
+	background: #f6f7f7;
+}
+
+.maxpost-media-item img {
+	display: block;
+	width: 100%;
+	height: 100px;
+	object-fit: cover;
+	background: #fff;
+}
+
+.maxpost-media-item .button-link-delete {
+	align-self: flex-start;
+}
