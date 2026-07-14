@@ -15,13 +15,18 @@ function maxpost_core_register_meta(): void {
 		'_maxpost_portable_download_url' => 'string',
 		'_maxpost_icon_id'               => 'integer',
 		'_maxpost_card_image_id'         => 'integer',
-		'_maxpost_screenshot_ids'        => 'array',
-		'_maxpost_supported_windows'     => 'array',
-		'_maxpost_supported_languages'   => 'array',
+		'_maxpost_screenshot_ids'        => 'integer_array',
+		'_maxpost_supported_windows'     => 'string_array',
+		'_maxpost_supported_languages'   => 'string_array',
 		'_maxpost_featured'              => 'boolean',
 	];
 
-	foreach ( $fields as $key => $type ) {
+	foreach ( $fields as $key => $field_type ) {
+		$type = match ( $field_type ) {
+			'integer_array', 'string_array' => 'array',
+			default                         => $field_type,
+		};
+
 		$args = [
 			'single'            => true,
 			'type'              => $type,
@@ -30,11 +35,13 @@ function maxpost_core_register_meta(): void {
 			'sanitize_callback' => 'maxpost_core_sanitize_meta',
 		];
 
-		if ( 'array' === $type ) {
+		if ( 'integer_array' === $field_type || 'string_array' === $field_type ) {
 			$args['show_in_rest'] = [
 				'schema' => [
 					'type'  => 'array',
-					'items' => [ 'type' => 'string' ],
+					'items' => [
+						'type' => 'integer_array' === $field_type ? 'integer' : 'string',
+					],
 				],
 			];
 		}
@@ -49,12 +56,17 @@ function maxpost_core_sanitize_meta( mixed $value, string $meta_key ): mixed {
 		return absint( $value );
 	}
 
+	if ( '_maxpost_screenshot_ids' === $meta_key ) {
+		$ids = array_map( 'absint', (array) $value );
+		return array_values( array_unique( array_filter( $ids ) ) );
+	}
+
 	if ( '_maxpost_featured' === $meta_key ) {
 		return rest_sanitize_boolean( $value );
 	}
 
-	if ( is_array( $value ) ) {
-		return array_values( array_filter( array_map( 'sanitize_text_field', $value ) ) );
+	if ( in_array( $meta_key, [ '_maxpost_supported_windows', '_maxpost_supported_languages' ], true ) ) {
+		return array_values( array_unique( array_filter( array_map( 'sanitize_text_field', (array) $value ) ) ) );
 	}
 
 	if ( str_contains( $meta_key, '_url' ) ) {
