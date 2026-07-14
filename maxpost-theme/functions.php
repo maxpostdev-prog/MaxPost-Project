@@ -25,7 +25,9 @@ function maxpost_theme_assets(): void {
 	wp_enqueue_style( 'maxpost-main', get_template_directory_uri() . '/assets/css/main.css', [ 'maxpost-style' ], $version );
 	wp_enqueue_style( 'maxpost-catalogue', get_template_directory_uri() . '/assets/css/catalogue.css', [ 'maxpost-main' ], $version );
 	wp_enqueue_style( 'maxpost-home-v2', get_template_directory_uri() . '/assets/css/home-v2.css', [ 'maxpost-main' ], $version );
+	wp_enqueue_style( 'maxpost-polish', get_template_directory_uri() . '/assets/css/polish.css', [ 'maxpost-home-v2', 'maxpost-catalogue' ], $version );
 	wp_enqueue_script( 'maxpost-navigation', get_template_directory_uri() . '/assets/js/navigation.js', [], $version, true );
+	wp_enqueue_script( 'maxpost-product-ui', get_template_directory_uri() . '/assets/js/product-ui.js', [], $version, true );
 }
 add_action( 'wp_enqueue_scripts', 'maxpost_theme_assets' );
 
