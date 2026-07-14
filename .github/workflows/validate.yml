@@ -35,6 +35,17 @@ jobs:
             docs/06-Windows-UI.md
             docs/07-WordPress-Theme.md
             docs/08-MaxPost-Core.md
+            maxpost-core/maxpost-core.php
+            maxpost-core/includes/post-types.php
+            maxpost-core/includes/meta.php
+            maxpost-core/includes/helpers.php
+            maxpost-core/includes/rest-api.php
+            maxpost-core/includes/admin.php
+            maxpost-theme/style.css
+            maxpost-theme/functions.php
+            maxpost-theme/front-page.php
+            maxpost-theme/archive-software.php
+            maxpost-theme/single-software.php
           )
 
           for file in "${required[@]}"; do
@@ -57,3 +68,58 @@ jobs:
             echo 'Merge conflict markers found.'
             exit 1
           fi
+
+  php-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+          coverage: none
+
+      - name: Lint PHP files
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -d '' files < <(find maxpost-core maxpost-theme -type f -name '*.php' -print0)
+          if [ "${#files[@]}" -eq 0 ]; then
+            echo 'No PHP files found.'
+            exit 1
+          fi
+
+          for file in "${files[@]}"; do
+            php -l "$file"
+          done
+
+      - name: Verify local PHP includes
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          import sys
+
+          root = Path('.')
+          failures = []
+          pattern = re.compile(r"(?:require|require_once|include|include_once)\s+[^;]*?['\"]([^'\"]+\.php)['\"]")
+
+          for php_file in list((root / 'maxpost-core').rglob('*.php')) + list((root / 'maxpost-theme').rglob('*.php')):
+              text = php_file.read_text(encoding='utf-8')
+              for relative in pattern.findall(text):
+                  candidates = [php_file.parent / relative]
+                  if 'MAXPOST_CORE_DIR' in text:
+                      candidates.append(root / 'maxpost-core' / relative)
+                  if 'get_template_directory' in text:
+                      candidates.append(root / 'maxpost-theme' / relative)
+                  if not any(candidate.exists() for candidate in candidates):
+                      failures.append(f'{php_file}: unresolved include {relative}')
+
+          if failures:
+              print('\n'.join(failures))
+              sys.exit(1)
+          PY
