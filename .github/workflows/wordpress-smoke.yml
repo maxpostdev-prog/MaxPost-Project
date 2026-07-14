@@ -1,0 +1,109 @@
+name: WordPress smoke test
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'maxpost-core/**'
+      - 'maxpost-theme/**'
+      - '.github/workflows/wordpress-smoke.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'maxpost-core/**'
+      - 'maxpost-theme/**'
+      - '.github/workflows/wordpress-smoke.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  clean-install:
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: wordpress
+          MYSQL_USER: wordpress
+          MYSQL_PASSWORD: wordpress
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+          extensions: mysqli
+          coverage: none
+
+      - name: Install WP-CLI
+        run: |
+          curl -fsSL -o wp-cli.phar https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar
+          php wp-cli.phar --info
+          chmod +x wp-cli.phar
+          sudo mv wp-cli.phar /usr/local/bin/wp
+
+      - name: Download clean WordPress
+        run: |
+          mkdir -p /tmp/maxpost-wp
+          wp core download --path=/tmp/maxpost-wp --force
+          wp config create \
+            --path=/tmp/maxpost-wp \
+            --dbname=wordpress \
+            --dbuser=wordpress \
+            --dbpass=wordpress \
+            --dbhost=127.0.0.1:3306 \
+            --skip-check
+          wp core install \
+            --path=/tmp/maxpost-wp \
+            --url=http://maxpost.test \
+            --title=MaxPost \
+            --admin_user=admin \
+            --admin_password='maxpost-test-password' \
+            --admin_email=admin@example.com \
+            --skip-email
+
+      - name: Install MaxPost plugin and theme
+        run: |
+          cp -R maxpost-core /tmp/maxpost-wp/wp-content/plugins/maxpost-core
+          cp -R maxpost-theme /tmp/maxpost-wp/wp-content/themes/maxpost-theme
+          wp plugin activate maxpost-core --path=/tmp/maxpost-wp
+          wp theme activate maxpost-theme --path=/tmp/maxpost-wp
+          wp rewrite structure '/%postname%/' --path=/tmp/maxpost-wp
+          wp rewrite flush --hard --path=/tmp/maxpost-wp
+
+      - name: Create smoke-test software entry
+        run: |
+          POST_ID=$(wp post create \
+            --path=/tmp/maxpost-wp \
+            --post_type=software \
+            --post_status=publish \
+            --post_title='MP Smoke Test' \
+            --post_excerpt='Clean-install validation utility.' \
+            --porcelain)
+          wp post meta update "$POST_ID" _maxpost_version '0.1.0' --path=/tmp/maxpost-wp
+          wp post meta update "$POST_ID" _maxpost_download_url 'https://example.com/mp-smoke-test.exe' --path=/tmp/maxpost-wp
+          wp post meta update "$POST_ID" _maxpost_featured '1' --path=/tmp/maxpost-wp
+
+      - name: Verify activation and REST routes
+        run: |
+          test "$(wp plugin status maxpost-core --field=status --path=/tmp/maxpost-wp)" = "active"
+          test "$(wp theme status maxpost-theme --field=status --path=/tmp/maxpost-wp)" = "active"
+          wp eval 'do_action("rest_api_init"); $request = new WP_REST_Request("GET", "/maxpost/v1/software"); $request->set_param("per_page", 12); $response = rest_do_request($request); if ($response->is_error() || 200 !== $response->get_status()) { exit(1); } $data = $response->get_data(); if (empty($data["items"])) { exit(1); } echo "REST smoke test passed\n";' --path=/tmp/maxpost-wp
+          wp eval 'if (!function_exists("maxpost_get_featured_software") || empty(maxpost_get_featured_software(3))) { exit(1); } echo "Theme helper smoke test passed\n";' --path=/tmp/maxpost-wp
+
+      - name: Render front page without fatal errors
+        run: |
+          wp eval 'ob_start(); require get_template_directory() . "/front-page.php"; $html = ob_get_clean(); if (false === strpos($html, "Small tools.")) { exit(1); } echo "Front-page render passed\n";' --path=/tmp/maxpost-wp
