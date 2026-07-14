@@ -20,6 +20,7 @@ require_once MAXPOST_CORE_DIR . 'includes/meta.php';
 require_once MAXPOST_CORE_DIR . 'includes/helpers.php';
 require_once MAXPOST_CORE_DIR . 'includes/rest-api.php';
 require_once MAXPOST_CORE_DIR . 'includes/admin.php';
+require_once MAXPOST_CORE_DIR . 'includes/demo-content.php';
 
 register_activation_hook(
 	__FILE__,
