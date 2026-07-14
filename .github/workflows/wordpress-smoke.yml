@@ -59,21 +59,8 @@ jobs:
         run: |
           mkdir -p /tmp/maxpost-wp
           wp core download --path=/tmp/maxpost-wp --force
-          wp config create \
-            --path=/tmp/maxpost-wp \
-            --dbname=wordpress \
-            --dbuser=wordpress \
-            --dbpass=wordpress \
-            --dbhost=127.0.0.1:3306 \
-            --skip-check
-          wp core install \
-            --path=/tmp/maxpost-wp \
-            --url=http://maxpost.test \
-            --title=MaxPost \
-            --admin_user=admin \
-            --admin_password='maxpost-test-password' \
-            --admin_email=admin@example.com \
-            --skip-email
+          wp config create --path=/tmp/maxpost-wp --dbname=wordpress --dbuser=wordpress --dbpass=wordpress --dbhost=127.0.0.1:3306 --skip-check
+          wp core install --path=/tmp/maxpost-wp --url=http://maxpost.test --title=MaxPost --admin_user=admin --admin_password='maxpost-test-password' --admin_email=admin@example.com --skip-email
 
       - name: Install MaxPost plugin and theme
         run: |
@@ -84,25 +71,24 @@ jobs:
           wp rewrite structure '/%postname%/' --path=/tmp/maxpost-wp
           wp rewrite flush --hard --path=/tmp/maxpost-wp
 
-      - name: Create smoke-test software entry
+      - name: Create smoke-test content
         run: |
-          POST_ID=$(wp post create \
-            --path=/tmp/maxpost-wp \
-            --post_type=software \
-            --post_status=publish \
-            --post_title='MP Smoke Test' \
-            --post_excerpt='Clean-install validation utility.' \
-            --porcelain)
+          POST_ID=$(wp post create --path=/tmp/maxpost-wp --post_type=software --post_status=publish --post_title='MP Smoke Test' --post_excerpt='Clean-install validation utility.' --porcelain)
           wp post meta update "$POST_ID" _maxpost_version '0.1.0' --path=/tmp/maxpost-wp
           wp post meta update "$POST_ID" _maxpost_download_url 'https://example.com/mp-smoke-test.exe' --path=/tmp/maxpost-wp
           wp post meta update "$POST_ID" _maxpost_featured '1' --path=/tmp/maxpost-wp
+          CARD_ID=$(wp post create --path=/tmp/maxpost-wp --post_type=maxpost_hub_card --post_status=publish --post_title='Try Image Converter' --porcelain)
+          wp post meta update "$CARD_ID" _maxpost_hub_type tool --path=/tmp/maxpost-wp
+          wp post meta update "$CARD_ID" _maxpost_hub_enabled 1 --path=/tmp/maxpost-wp
+          wp post meta update "$CARD_ID" _maxpost_hub_app_targets 'a:1:{i:0;s:17:"mp-folder-creator";}' --format=serialized --path=/tmp/maxpost-wp
 
       - name: Verify activation and REST routes
         run: |
           wp plugin is-active maxpost-core --path=/tmp/maxpost-wp
           wp theme is-active maxpost-theme --path=/tmp/maxpost-wp
-          wp eval 'do_action("rest_api_init"); $request = new WP_REST_Request("GET", "/maxpost/v1/software"); $request->set_param("per_page", 12); $response = rest_do_request($request); if ($response->is_error() || 200 !== $response->get_status()) { exit(1); } $data = $response->get_data(); if (empty($data["items"])) { exit(1); } echo "REST smoke test passed\n";' --path=/tmp/maxpost-wp
-          wp eval 'if (!function_exists("maxpost_get_featured_software") || empty(maxpost_get_featured_software(3))) { exit(1); } echo "Theme helper smoke test passed\n";' --path=/tmp/maxpost-wp
+          wp eval 'do_action("rest_api_init"); $request = new WP_REST_Request("GET", "/maxpost/v1/software"); $request->set_param("per_page", 12); $response = rest_do_request($request); if ($response->is_error() || 200 !== $response->get_status() || empty($response->get_data()["items"])) { exit(1); } echo "Software REST passed\n";' --path=/tmp/maxpost-wp
+          wp eval 'do_action("rest_api_init"); $request = new WP_REST_Request("GET", "/maxpost/v1/hub"); $request->set_param("app", "mp-folder-creator"); $request->set_param("locale", "en-US"); $request->set_param("version", "0.1.0"); $response = rest_do_request($request); $data = $response->get_data(); if ($response->is_error() || 200 !== $response->get_status() || empty($data["cards"]) || !array_key_exists("feature_flags", $data)) { exit(1); } echo "Hub REST passed\n";' --path=/tmp/maxpost-wp
+          wp eval 'if (!function_exists("maxpost_get_featured_software") || empty(maxpost_get_featured_software(3))) { exit(1); } echo "Theme helper passed\n";' --path=/tmp/maxpost-wp
 
       - name: Render front page without fatal errors
         run: |
