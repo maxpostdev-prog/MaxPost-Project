@@ -1,0 +1,59 @@
+name: Validate repository
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  structure:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verify required files
+        shell: bash
+        run: |
+          set -euo pipefail
+          required=(
+            README.md
+            ROADMAP.md
+            CONTRIBUTING.md
+            SECURITY.md
+            CHANGELOG.md
+            docs/00-Vision.md
+            docs/01-Brand.md
+            docs/02-Design-System.md
+            docs/03-Components.md
+            docs/04-Website-Layout.md
+            docs/05-Wireframes.md
+            docs/06-Windows-UI.md
+            docs/07-WordPress-Theme.md
+            docs/08-MaxPost-Core.md
+          )
+
+          for file in "${required[@]}"; do
+            test -f "$file" || { echo "Missing required file: $file"; exit 1; }
+          done
+
+      - name: Reject empty Markdown files
+        shell: bash
+        run: |
+          set -euo pipefail
+          while IFS= read -r -d '' file; do
+            test -s "$file" || { echo "Empty Markdown file: $file"; exit 1; }
+          done < <(find . -name '*.md' -not -path './.git/*' -print0)
+
+      - name: Check merge conflict markers
+        shell: bash
+        run: |
+          set -euo pipefail
+          if grep -RInE '^(<<<<<<<|=======|>>>>>>>)' --exclude-dir=.git .; then
+            echo 'Merge conflict markers found.'
+            exit 1
+          fi
